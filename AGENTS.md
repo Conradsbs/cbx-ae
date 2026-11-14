@@ -4,7 +4,7 @@ You are installing two After Effects panels on this user's Mac:
 - **cbx agent**: an AI prompt bar inside After Effects (runs Claude Code or Codex with the user's own login).
 - **cbxpanel**: a quick-action toolbar (KBar-style) with its own MCP server.
 
-Everything is prebuilt. The installer needs no admin password and only writes to the user's own Library folders, `~/.local/bin` (Node.js, only if missing) and agent-app config (cbxpanel skill + MCP entry).
+Everything is prebuilt. The installer needs no admin password and only writes to the user's own Library folders, `~/.local/bin` (Node.js, only if missing) and agent-app config (the cbxpanel MCP entry; no skill is installed, the instructions ship inside the extension).
 
 ## Steps
 1. Run the installer and read its whole output:

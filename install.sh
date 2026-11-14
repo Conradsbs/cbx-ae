@@ -9,7 +9,7 @@
 #   ~/Library/Application Support/cbx                          the two tools (+ Node.js if it had to be installed)
 #   ~/Library/Application Support/Adobe/CEP/extensions        links so After Effects finds the panels
 #   ~/Library/Application Support/Adobe/Common/Plug-ins/7.0/MediaCore   the cbx Shader + cbx Controls effects
-#   ~/.agents/skills/cbxpanel + the MCP config of agent apps you have (so your AI agent can edit cbxpanel)
+#   the cbxpanel MCP entry in the agent apps you have (so your AI agent can edit cbxpanel; no skill is installed)
 set -euo pipefail
 
 REPO="conrad-rd/cbx-ae"
@@ -39,9 +39,9 @@ find_bin() { # <name>: the panel looks in these folders, then in your login shel
 if [ "${1:-}" = "--uninstall" ]; then
   step "Removing cbx"
   N=""; for c in "$(find_bin node)" "$APP/node/bin/node"; do node_ok "$c" && { N="$c"; break; }; done
-  if [ -n "$N" ] && [ -f "$APP/cbxpanel/skill/install.sh" ]; then
+  if [ -n "$N" ] && [ -f "$APP/cbxpanel/tools/setup-agents.sh" ]; then
     P="$(dirname "$N")"; for b in "$(find_bin claude)" "$(find_bin codex)"; do [ -n "$b" ] && P="$P:$(dirname "$b")"; done
-    PATH="$P:$PATH" bash "$APP/cbxpanel/skill/install.sh" --uninstall >/dev/null 2>&1 || true
+    PATH="$P:$PATH" bash "$APP/cbxpanel/tools/setup-agents.sh" --uninstall >/dev/null 2>&1 || true
   fi
   for l in com.cbx.agent com.cbx.cbxpanel; do [ -L "$EXT_DIR/$l" ] && rm "$EXT_DIR/$l"; done
   rm -rf "$PLUGIN_DIR/cbx Shader.plugin" "$PLUGIN_DIR/cbx Controls.plugin"
@@ -120,17 +120,17 @@ if [ -d "$APP/cbx-agent/extension/native/mac/cbx Controls.plugin" ]; then
 fi
 say "cbx agent" "$(sed -n 's/.*ExtensionBundleVersion="\([^"]*\)".*/\1/p' "$APP/cbx-agent/extension/CSXS/manifest.xml")"
 
-# cbxpanel: CEP link, data folder, agent skill + MCP server for the agent apps on this Mac.
+# cbxpanel: CEP link, data folder, MCP server for the agent apps on this Mac (older versions' cbxpanel skill is removed).
 ln -sfn "$APP/cbxpanel/extension" "$EXT_DIR/com.cbx.cbxpanel"
 for v in 9 10 11 12 13 14 15 16; do defaults write "com.adobe.CSXS.$v" PlayerDebugMode 1; done
 "$NODE" "$APP/cbxpanel/tools/cli.js" init >/dev/null
-# Agent CLIs installed moments ago may not be on this shell's PATH yet; give their folders to the skill step.
+# Agent CLIs installed moments ago may not be on this shell's PATH yet; give their folders to the setup step.
 CLAUDE="$(find_bin claude)"; CODEX="$(find_bin codex)"
 AGENT_PATH="$(dirname "$NODE")"
 for b in "$CLAUDE" "$CODEX"; do [ -n "$b" ] && AGENT_PATH="$AGENT_PATH:$(dirname "$b")"; done
-PATH="$AGENT_PATH:$PATH" bash "$APP/cbxpanel/skill/install.sh" >"$TMP/skill.log" 2>&1 || { cat "$TMP/skill.log"; die "cbxpanel skill/MCP setup failed."; }
-APPS="$(sed -n 's/^mcp  *\([^:]*\)$/\1/p' "$TMP/skill.log" | paste -sd, - | sed 's/,/, /g')"
-say "cbxpanel" "$(sed -n 's/.*ExtensionBundleVersion="\([^"]*\)".*/\1/p' "$APP/cbxpanel/extension/CSXS/manifest.xml")  (agent skill + MCP for: ${APPS:-no agent apps found})"
+PATH="$AGENT_PATH:$PATH" bash "$APP/cbxpanel/tools/setup-agents.sh" >"$TMP/agents.log" 2>&1 || { cat "$TMP/agents.log"; die "cbxpanel MCP setup failed."; }
+APPS="$(sed -n 's/^mcp  *\([^:]*\)$/\1/p' "$TMP/agents.log" | paste -sd, - | sed 's/,/, /g')"
+say "cbxpanel" "$(sed -n 's/.*ExtensionBundleVersion="\([^"]*\)".*/\1/p' "$APP/cbxpanel/extension/CSXS/manifest.xml")  (MCP for: ${APPS:-no agent apps found})"
 
 # ---------------------------------------------------------------- AI engines
 step "AI engine (cbx agent needs at least one, signed in)"
